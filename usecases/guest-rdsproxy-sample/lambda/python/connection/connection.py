@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-import pg8000
+import pg8000.native
 import ssl
 from botocore.exceptions import ClientError
 from typing import Any, Dict
@@ -37,10 +37,10 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> Dict[
   
   ssl_context = ssl.SSLContext()
   ssl_context.verify_mode = ssl.CERT_REQUIRED
-  ssl_context.load_verify_locations('/opt/python/data/RootCA1.pem')
+  ssl_context.load_verify_locations('./AmazonRootCA1.pem')
   
   try:
-    conn = pg8000.connect(
+    conn = pg8000.native.Connection(
         host=db_endpoint, 
         port=db_port, 
         database=db_name, 
@@ -50,4 +50,9 @@ def lambda_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> Dict[
     )
   except Exception as e:
     print("Database connection failed due to {}".format(e))
+  else:
+    return {
+        'statusCode': 200,
+        'body': '{"message": "Connected."}'
+    }
     

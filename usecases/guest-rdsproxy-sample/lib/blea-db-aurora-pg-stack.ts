@@ -12,6 +12,7 @@ export interface BLEADbAuroraPgStackProps extends cdk.StackProps {
   myVpc: ec2.Vpc;
   dbName: string;
   dbUser: string;
+  dbPort: string;
   dbAllocatedStorage: number;
   appKey: kms.IKey;
   vpcSubnets: ec2.SubnetSelection;
@@ -21,15 +22,21 @@ export interface BLEADbAuroraPgStackProps extends cdk.StackProps {
 export class BLEADbAuroraPgStack extends cdk.Stack {
   public readonly cluster: rds.DatabaseCluster;
   public readonly dbProxy: rds.DatabaseProxy;
-  public readonly dbSecurityGroup: ec2.SecurityGroup;
+  public readonly dbProxySecurityGroup: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: BLEADbAuroraPgStackProps) {
     super(scope, id, props);
 
-    // Security Group for DB and Proxy
+    // Security Group for DB
     const dbSecurityGroup = new ec2.SecurityGroup(this, 'DbSecurityGroup', {
       vpc: props.myVpc,
     });
+
+    // Security Group for DBProxy
+    const dbProxySecurityGroup = new ec2.SecurityGroup(this, 'DbProxySecurityGroup', {
+      vpc: props.myVpc,
+    });
+    dbSecurityGroup.addIngressRule(dbProxySecurityGroup, ec2.Port.tcp(Number(props.dbPort)), 'to RDS Instance');
 
     // Create Aurora Cluster
     const cluster = new rds.DatabaseCluster(this, 'Aurora', {
@@ -63,18 +70,19 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
 
     // RDS Proxy
     // You have two options for security to connect to RDS Proxy. (https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/rds-proxy-setup.html#rds-proxy-connecting)
-    // 1. use IAM authentication. This is recommended because it can remove the need to embed or read credentials in your function code). In this CDK template we use IAM authentication.
-    // 2. use your native database credentials stored in Secrets Manager. If you want to implement in this way, you have to create IAM policy that allows Lambda function to access DB credentials in Secrets Manager.
+    // [*]1. use IAM authentication. This is recommended because it can remove the need to embed or read credentials in your function code). In this CDK template we use IAM authentication.
+    // [ ]2. use your native database credentials stored in Secrets Manager. If you want to implement in this way, you have to create IAM policy that allows Lambda function to access DB credentials in Secrets Manager.
     const dbProxy = cluster.addProxy('DbProxy', {
       secrets: [cluster.secret!],
       vpc: props.myVpc,
       vpcSubnets: props.vpcSubnets,
-      securityGroups: [dbSecurityGroup],
+      securityGroups: [dbProxySecurityGroup],
       requireTLS: true,
       iamAuth: true,
     });
+
     this.dbProxy = dbProxy;
-    this.dbSecurityGroup = dbSecurityGroup;
+    this.dbProxySecurityGroup = dbProxySecurityGroup;
 
     // ----------------------- Alarms for RDS -----------------------------
 
@@ -93,26 +101,144 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
       })
       .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
 
-    // Can't find instanceIdentifiers - implement later
-    //
-    // cluster.instanceIdentifiers.forEach(instance => {
-    //   console.log("instance: "+instance);
-    //   new cw.Metric({
-    //     metricName: 'CPUUtilization',
-    //     namespace: 'AWS/RDS',
-    //      dimensionsMap: {
-    //       DBInstanceIdentifier: instance
-    //     },
-    //     period: cdk.Duration.minutes(1),
-    //     statistic: cw.Statistic.AVERAGE,
-    //   }).createAlarm(this, 'CPUUtilization', {
-    //     evaluationPeriods: 3,
-    //     datapointsToAlarm: 2,
-    //     threshold: 90,
-    //     comparisonOperator: cw.ComparisonOperator.GREATER_THAN_THRESHOLD,
-    //     actionsEnabled: true
-    //   }).addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
-    // });
+    // Aurora Cluster Freeable Memory (The amount of available random access memory, in bytes)
+    // Now it is set to alarm when the free memory space is less than or equal to 1GB.
+    // You can check the max memory space of your DB instance from here : https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary
+    cluster
+      .metricFreeableMemory({
+        period: cdk.Duration.minutes(5),
+        statistic: cw.Statistic.AVERAGE,
+      })
+      .createAlarm(this, 'AuroraFreeableMem', {
+        evaluationPeriods: 5,
+        datapointsToAlarm: 5,
+        threshold: 1000000000, // bytes
+        comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // Aurora Cluster Database Connections
+    // Now the threshold is set to 90, the default value of DB t3.medium class .
+    // You should set the threshold according to your DB cluster instance class. (https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Performance.html#AuroraMySQL.Managing.MaxConnections)
+    cluster
+      .metricDatabaseConnections({
+        period: cdk.Duration.minutes(5),
+        statistic: cw.Statistic.AVERAGE,
+      })
+      .createAlarm(this, 'AuroraDbConnections', {
+        evaluationPeriods: 5,
+        datapointsToAlarm: 5,
+        threshold: 90,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // ----------------------- Alarms for RDS  Proxy-----------------------------
+    // All the metrics with RDS Proxy -> https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.monitoring.html
+
+    // Availability Percentage
+    // The percentage of time for which the target group was available in the role indicated by the dimension.
+    new cw.Metric({
+      namespace: 'AWS/RDS',
+      metricName: 'AvailabilityPercentage',
+      period: cdk.Duration.minutes(1),
+      statistic: cw.Statistic.AVERAGE,
+      dimensionsMap: {
+        ProxyName: dbProxy.dbProxyName,
+      },
+    })
+      .createAlarm(this, 'AvailabilityPercentageAlarm', {
+        evaluationPeriods: 3,
+        threshold: 95,
+        datapointsToAlarm: 3,
+        comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // ClientConnections
+    // The current number of client connections.
+    new cw.Metric({
+      namespace: 'AWS/RDS',
+      metricName: 'ClientConnections',
+      period: cdk.Duration.minutes(1),
+      statistic: cw.Statistic.SUM,
+      dimensionsMap: {
+        ProxyName: dbProxy.dbProxyName,
+      },
+    })
+      .createAlarm(this, 'ClientConnectionsAlarm', {
+        evaluationPeriods: 3,
+        threshold: 100,
+        datapointsToAlarm: 3,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // DatabaseConnections
+    // The current number of database connections.
+    new cw.Metric({
+      namespace: 'AWS/RDS',
+      metricName: 'DatabaseConnections',
+      period: cdk.Duration.minutes(1),
+      statistic: cw.Statistic.SUM,
+      dimensionsMap: {
+        ProxyName: dbProxy.dbProxyName,
+      },
+    })
+      .createAlarm(this, 'DatabaseConnectionsAlarm', {
+        evaluationPeriods: 3,
+        // Now the threshold is set to 90, the default value of DB t3.medium class .
+        // You should set the threshold according to your DB cluster instance class.
+        // In checking the max_connections (the maximum number of connections), you can refer to this document (https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Performance.html#AuroraMySQL.Managing.MaxConnections)
+        threshold: 90,
+        datapointsToAlarm: 3,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // DatabaseConnectionsSetupFailed
+    // The number of database connection requests that failed.
+    new cw.Metric({
+      namespace: 'AWS/RDS',
+      metricName: 'DatabaseConnectionsSetupFailed',
+      period: cdk.Duration.minutes(1),
+      statistic: cw.Statistic.SUM,
+      dimensionsMap: {
+        ProxyName: dbProxy.dbProxyName,
+      },
+    })
+      .createAlarm(this, 'DatabaseConnectionsSetupFailedAlarm', {
+        evaluationPeriods: 3,
+        threshold: 10,
+        datapointsToAlarm: 3,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // QueryResponseLatency
+    new cw.Metric({
+      namespace: 'AWS/RDS',
+      metricName: 'QueryResponseLatency',
+      period: cdk.Duration.minutes(1),
+      statistic: cw.Statistic.AVERAGE,
+      dimensionsMap: {
+        ProxyName: dbProxy.dbProxyName,
+      },
+    })
+      .createAlarm(this, 'QueryResponseLatencyAlarm', {
+        evaluationPeriods: 3,
+        threshold: 5000000, // microseconds
+        datapointsToAlarm: 3,
+        comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
 
     // ----------------------- RDS Event Subscription  -----------------------------
     //   Send critical(see eventCategories) event on all of clusters and instances

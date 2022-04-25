@@ -17,7 +17,7 @@ export class BLEARestApiStack extends cdk.Stack {
     super(scope, id, props);
 
     // Sample log group for API Gateway
-    const apiGatewayLogGroup = new cw_logs.LogGroup(this, 'ApiGatewayLogGroup6', {
+    const apiGatewayLogGroup = new cw_logs.LogGroup(this, 'ApiGatewayLogGroup', {
       retention: cw_logs.RetentionDays.ONE_MONTH,
     });
 
@@ -26,7 +26,7 @@ export class BLEARestApiStack extends cdk.Stack {
     // Note: Enable Metrics, Logging(info level), Tracing(X-Ray),
     //       See: https://docs.aws.amazon.com/apigateway/latest/developerguide/rest-api-monitor.html
     //
-    const restApi = new apigateway.RestApi(this, 'RestApi6', {
+    const restApi = new apigateway.RestApi(this, 'RestApi', {
       deployOptions: {
         accessLogDestination: new apigateway.LogGroupLogDestination(apiGatewayLogGroup),
         accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields(),

@@ -2,7 +2,7 @@
   "private": true,
   "name": "blea-guest-rdsproxy-sample",
   "version": "1.0.0",
-  "description": "Sample servlerless application with BLEA",
+  "description": "Lambda with RDS Proxy",
   "license": "MIT-0",
   "bin": {
     "blea-guest-rdsproxy-nodejs-sample": "bin/blea-guest-rdsproxy-nodejs-sample.js"

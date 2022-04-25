@@ -19,7 +19,7 @@ export interface BLEALambdaPythonStackProps extends cdk.StackProps {
   dbName: string;
   dbProxy: rds.DatabaseProxy;
   dbPort: string;
-  dbSecurityGroup: ec2.SecurityGroup;
+  dbProxySecurityGroup: ec2.SecurityGroup;
   appKey: kms.Key;
 }
 export class BLEALambdaPythonStack extends cdk.Stack {
@@ -57,42 +57,15 @@ export class BLEALambdaPythonStack extends cdk.Stack {
       resources: [props.appKey.keyArn],
     });
 
-    // Using Lambda Python Library
-    //
-    // !!!! CAUTION !!!!
-    // Lambda Python Library is experimental. This implementation might be changed.
-    // See: https://docs.aws.amazon.com/cdk/api/latest/docs/aws-lambda-python-readme.html
-    //
-
-    // Lambda layer for Lambda Powertools
-    // For install instruction, See: https://awslabs.github.io/aws-lambda-powertools-python/latest/#install
-    const lambdaPowertools = lambda.LayerVersion.fromLayerVersionArn(
-      this,
-      'lambda-powertools',
-      `arn:aws:lambda:${cdk.Stack.of(this).region}:017000801446:layer:AWSLambdaPowertoolsPython:3`,
-    );
-
-    // Create Lambda Layer to install the modules (install pg8000 library (pure-Python PostgreSQL driver) in this CDK template.)
-    // For each Lambda runtime, the PATH variable includes specific folders in the /opt directory.
-    // If you define the same folder structure in your layer, your function code can access the layer content without the need to specify the path.
-    // https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-path
-    const lambdaLayer = new lambda.LayerVersion(this, 'LambdaLayer', {
-      compatibleRuntimes: [lambda.Runtime.PYTHON_3_8],
-      code: lambda.AssetCode.fromAsset('./lambda/python/layer'),
-    });
-
-    // Connection Function
-    const connectFunction = new lambda.Function(this, 'connection', {
-      runtime: lambda.Runtime.PYTHON_3_8,
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/python/function/connection')),
-      handler: 'connection.lambda_handler',
+    // Connection Function with Docker
+    const connectFunction = new lambda.DockerImageFunction(this, 'connection', {
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../lambda/python/')),
       timeout: cdk.Duration.seconds(25),
       memorySize: 512,
       tracing: lambda.Tracing.ACTIVE,
       vpc: props.myVpc,
       vpcSubnets: props.vpcSubnets,
       insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_98_0,
-      layers: [lambdaPowertools, lambdaLayer],
       environment: {
         REGION: cdk.Stack.of(this).region,
         DB_USER: props.dbUser,
@@ -128,7 +101,7 @@ export class BLEALambdaPythonStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole'),
     );
     // Allow the function to establish a connection to RDS proxy
-    connectFunction.connections.allowTo(props.dbSecurityGroup, ec2.Port.tcp(Number(props.dbPort)), 'to RDS Instance');
+    connectFunction.connections.allowTo(props.dbProxySecurityGroup, ec2.Port.tcp(Number(props.dbPort)), 'to RDS Proxy');
     this.connectFunction = connectFunction;
 
     // Sample metrics and alarm

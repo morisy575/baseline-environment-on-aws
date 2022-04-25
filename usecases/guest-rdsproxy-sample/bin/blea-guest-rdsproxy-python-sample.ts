@@ -6,12 +6,8 @@ import { BLEADbAuroraPgStack } from '../lib/blea-db-aurora-pg-stack';
 import { BLEAMonitorAlarmStack } from '../lib/blea-monitor-alarm-stack';
 import { BLEAChatbotStack } from '../lib/blea-chatbot-stack';
 import { BLEAKeyAppStack } from '../lib/blea-key-app-stack';
-import { setupLambdaLayerPython } from '../lib/blea-setup-lambda-layer-python';
 import { BLEALambdaPythonStack } from '../lib/blea-lambda-python-stack';
 import { BLEARestApiStack } from '../lib/blea-restapi-stack';
-
-// Setup Lambda Layer Modules
-setupLambdaLayerPython();
 
 const pjPrefix = 'BLEA';
 const app = new cdk.App();
@@ -54,12 +50,12 @@ const monitorAlarm = new BLEAMonitorAlarmStack(app, `${pjPrefix}-MonitorAlarm`, 
 });
 
 // Chatbot
-new BLEAChatbotStack(app, `${pjPrefix}-ChatbotMonitor`, {
-  topicArn: monitorAlarm.alarmTopic.topicArn,
-  workspaceId: workspaceId,
-  channelId: channelIdMon,
-  env: getProcEnv(),
-});
+// new BLEAChatbotStack(app, `${pjPrefix}-ChatbotMonitor`, {
+//   topicArn: monitorAlarm.alarmTopic.topicArn,
+//   workspaceId: workspaceId,
+//   channelId: channelIdMon,
+//   env: getProcEnv(),
+// });
 
 // CMK for Apps
 const appKey = new BLEAKeyAppStack(app, `${pjPrefix}-AppKey`, { env: getProcEnv() });
@@ -76,6 +72,8 @@ const dbCluster = new BLEADbAuroraPgStack(app, `${pjPrefix}-DBAuroraPg`, {
   myVpc: prodVpc.myVpc,
   dbName: envVals['dbName'],
   dbUser: envVals['dbUser'],
+  dbPort: '5432', // for PostgreSQL
+  // dbPort: '3306', // for MySQL
   dbAllocatedStorage: 25,
   vpcSubnets: prodVpc.myVpc.selectSubnets({
     subnetGroupName: 'ProtectedAurora',
@@ -98,7 +96,7 @@ const lambda = new BLEALambdaPythonStack(app, `${pjPrefix}-LambdaPython`, {
   dbProxy: dbCluster.dbProxy,
   dbPort: '5432', // for PostgreSQL
   // dbPort: '3306', // for MySQL
-  dbSecurityGroup: dbCluster.dbSecurityGroup,
+  dbProxySecurityGroup: dbCluster.dbProxySecurityGroup,
   appKey: appKey.kmsKey,
   env: getProcEnv(),
 });

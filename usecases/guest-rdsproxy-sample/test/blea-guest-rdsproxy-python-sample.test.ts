@@ -56,6 +56,8 @@ describe(`${pjPrefix} Guest Stack`, () => {
       myVpc: prodVpc.myVpc,
       dbName: envVals['dbName'],
       dbUser: envVals['dbUser'],
+      dbPort: '5432', // for PostgreSQL
+      // dbPort: '3306', // for MySQL
       dbAllocatedStorage: 25,
       vpcSubnets: prodVpc.myVpc.selectSubnets({
         subnetGroupName: 'ProtectedAurora',
@@ -76,8 +78,9 @@ describe(`${pjPrefix} Guest Stack`, () => {
       dbUser: envVals['dbUser'],
       dbName: envVals['dbName'],
       dbProxy: dbCluster.dbProxy,
-      dbPort: '5432',
-      dbSecurityGroup: dbCluster.dbSecurityGroup,
+      dbPort: '5432', // for PostgreSQL
+      // dbPort: '3306', // for MySQL
+      dbProxySecurityGroup: dbCluster.dbProxySecurityGroup,
       appKey: appKey.kmsKey,
       env: procEnv,
     });
