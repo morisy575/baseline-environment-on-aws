@@ -70,7 +70,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
 
     // RDS Proxy
     // You have two options for security to connect to RDS Proxy. (https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/rds-proxy-setup.html#rds-proxy-connecting)
-    // [*]1. use IAM authentication. This is recommended because it can remove the need to embed or read credentials in your function code). In this CDK template we use IAM authentication.
+    // [*]1. use IAM authentication. This is recommended because it can remove the need to embed or read credentials in your function code). In this guest sample project,  we use IAM authentication.
     // [ ]2. use your native database credentials stored in Secrets Manager. If you want to implement in this way, you have to create IAM policy that allows Lambda function to access DB credentials in Secrets Manager.
     const dbProxy = cluster.addProxy('DbProxy', {
       secrets: [cluster.secret!],
@@ -95,7 +95,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
       .createAlarm(this, 'AuroraCPUUtil', {
         evaluationPeriods: 3,
         datapointsToAlarm: 3,
-        threshold: 90,
+        threshold: 90, // percentage
         comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
       })
@@ -151,7 +151,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     })
       .createAlarm(this, 'AvailabilityPercentageAlarm', {
         evaluationPeriods: 3,
-        threshold: 95,
+        threshold: 95, // percentage
         datapointsToAlarm: 3,
         comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
@@ -171,7 +171,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     })
       .createAlarm(this, 'ClientConnectionsAlarm', {
         evaluationPeriods: 3,
-        threshold: 100,
+        threshold: 100, // connections
         datapointsToAlarm: 3,
         comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,

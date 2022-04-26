@@ -278,7 +278,7 @@ Object {
                         Object {
                           "Ref": "AWS::AccountId",
                         },
-                        ":role/BLEA-LambdaPython-*",
+                        ":role/BLEA-Lambda-*",
                       ],
                     ],
                   },
@@ -899,13 +899,13 @@ Object {
         ],
       },
     },
-    "ExportsOutputFnGetAttDbSecurityGroupE9D701ADGroupId7A7C114A": Object {
+    "ExportsOutputFnGetAttDbProxySecurityGroupDF296A40GroupId6F20B6E0": Object {
       "Export": Object {
-        "Name": "BLEA-DBAuroraPg:ExportsOutputFnGetAttDbSecurityGroupE9D701ADGroupId7A7C114A",
+        "Name": "BLEA-DBAuroraPg:ExportsOutputFnGetAttDbProxySecurityGroupDF296A40GroupId6F20B6E0",
       },
       "Value": Object {
         "Fn::GetAtt": Array [
-          "DbSecurityGroupE9D701AD",
+          "DbProxySecurityGroupDF296A40",
           "GroupId",
         ],
       },
@@ -996,6 +996,33 @@ Object {
       },
       "Type": "AWS::CloudWatch::Alarm",
     },
+    "AuroraDbConnections6859DACE": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "DatapointsToAlarm": 5,
+        "Dimensions": Array [
+          Object {
+            "Name": "DBClusterIdentifier",
+            "Value": Object {
+              "Ref": "Aurora2CBAB212",
+            },
+          },
+        ],
+        "EvaluationPeriods": 5,
+        "MetricName": "DatabaseConnections",
+        "Namespace": "AWS/RDS",
+        "Period": 300,
+        "Statistic": "Average",
+        "Threshold": 90,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
     "AuroraDbProxyA0A8028C": Object {
       "Properties": Object {
         "Auth": Array [
@@ -1019,7 +1046,7 @@ Object {
         "VpcSecurityGroupIds": Array [
           Object {
             "Fn::GetAtt": Array [
-              "DbSecurityGroupE9D701AD",
+              "DbProxySecurityGroupDF296A40",
               "GroupId",
             ],
           },
@@ -1110,6 +1137,33 @@ Object {
         "TargetGroupName": "default",
       },
       "Type": "AWS::RDS::DBProxyTargetGroup",
+    },
+    "AuroraFreeableMem3DBAA791": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "DatapointsToAlarm": 5,
+        "Dimensions": Array [
+          Object {
+            "Name": "DBClusterIdentifier",
+            "Value": Object {
+              "Ref": "Aurora2CBAB212",
+            },
+          },
+        ],
+        "EvaluationPeriods": 5,
+        "MetricName": "FreeableMemory",
+        "Namespace": "AWS/RDS",
+        "Period": 300,
+        "Statistic": "Average",
+        "Threshold": 1000000000,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
     },
     "AuroraInstance10510C5D1": Object {
       "DeletionPolicy": "Delete",
@@ -1225,6 +1279,33 @@ Object {
       },
       "Type": "AWS::RDS::DBSubnetGroup",
     },
+    "AvailabilityPercentageAlarmF3D33626": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "DatapointsToAlarm": 3,
+        "Dimensions": Array [
+          Object {
+            "Name": "ProxyName",
+            "Value": Object {
+              "Ref": "AuroraDbProxyA0A8028C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 3,
+        "MetricName": "AvailabilityPercentage",
+        "Namespace": "AWS/RDS",
+        "Period": 60,
+        "Statistic": "Average",
+        "Threshold": 95,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
     "BLEADBAuroraPgAuroraSecretC8E806513fdaad7efa858a3daf9490cf0a702aeb": Object {
       "DeletionPolicy": "Delete",
       "Properties": Object {
@@ -1255,6 +1336,109 @@ Object {
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
     },
+    "ClientConnectionsAlarmF8C3A703": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "DatapointsToAlarm": 3,
+        "Dimensions": Array [
+          Object {
+            "Name": "ProxyName",
+            "Value": Object {
+              "Ref": "AuroraDbProxyA0A8028C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 3,
+        "MetricName": "ClientConnections",
+        "Namespace": "AWS/RDS",
+        "Period": 60,
+        "Statistic": "Sum",
+        "Threshold": 100,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "DatabaseConnectionsAlarm3643818C": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "DatapointsToAlarm": 3,
+        "Dimensions": Array [
+          Object {
+            "Name": "ProxyName",
+            "Value": Object {
+              "Ref": "AuroraDbProxyA0A8028C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 3,
+        "MetricName": "DatabaseConnections",
+        "Namespace": "AWS/RDS",
+        "Period": 60,
+        "Statistic": "Sum",
+        "Threshold": 90,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "DatabaseConnectionsSetupFailedAlarmA820472E": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "DatapointsToAlarm": 3,
+        "Dimensions": Array [
+          Object {
+            "Name": "ProxyName",
+            "Value": Object {
+              "Ref": "AuroraDbProxyA0A8028C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 3,
+        "MetricName": "DatabaseConnectionsSetupFailed",
+        "Namespace": "AWS/RDS",
+        "Period": 60,
+        "Statistic": "Sum",
+        "Threshold": 10,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "DbProxySecurityGroupDF296A40": Object {
+      "Properties": Object {
+        "GroupDescription": "BLEA-DBAuroraPg/DbProxySecurityGroup",
+        "SecurityGroupEgress": Array [
+          Object {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": Array [
+          Object {
+            "Key": "Environment",
+            "Value": "Development",
+          },
+        ],
+        "VpcId": Object {
+          "Fn::ImportValue": "BLEA-Vpc:ExportsOutputRefVpc8378EB38272D6E3A",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
     "DbSecurityGroupE9D701AD": Object {
       "Properties": Object {
         "GroupDescription": "BLEA-DBAuroraPg/DbSecurityGroup",
@@ -1277,7 +1461,28 @@ Object {
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
-    "DbSecurityGroupfromBLEADBAuroraPgDbSecurityGroup912F9096IndirectPort728C40A2": Object {
+    "DbSecurityGroupfromBLEADBAuroraPgDbProxySecurityGroupCFDCE8185432A29CF487": Object {
+      "Properties": Object {
+        "Description": "to RDS Instance",
+        "FromPort": 5432,
+        "GroupId": Object {
+          "Fn::GetAtt": Array [
+            "DbSecurityGroupE9D701AD",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": Object {
+          "Fn::GetAtt": Array [
+            "DbProxySecurityGroupDF296A40",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "DbSecurityGroupfromBLEADBAuroraPgDbProxySecurityGroupCFDCE818IndirectPort4F2753DE": Object {
       "Properties": Object {
         "Description": "Allow connections to the database Cluster from the Proxy",
         "FromPort": Object {
@@ -1295,7 +1500,7 @@ Object {
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": Object {
           "Fn::GetAtt": Array [
-            "DbSecurityGroupE9D701AD",
+            "DbProxySecurityGroupDF296A40",
             "GroupId",
           ],
         },
@@ -1398,6 +1603,33 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
+    "QueryResponseLatencyAlarm12777BFB": Object {
+      "Properties": Object {
+        "ActionsEnabled": true,
+        "AlarmActions": Array [
+          Object {
+            "Fn::ImportValue": "BLEA-MonitorAlarm:ExportsOutputRefMonitorAlarmTopic9C746E8C5F969821",
+          },
+        ],
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "DatapointsToAlarm": 3,
+        "Dimensions": Array [
+          Object {
+            "Name": "ProxyName",
+            "Value": Object {
+              "Ref": "AuroraDbProxyA0A8028C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 3,
+        "MetricName": "QueryResponseLatency",
+        "Namespace": "AWS/RDS",
+        "Period": 60,
+        "Statistic": "Average",
+        "Threshold": 5000000,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
     "RdsEventsCluster": Object {
       "Properties": Object {
         "Enabled": true,
@@ -1466,80 +1698,10 @@ Object {
 
 exports[`BLEA Guest Stack GuestAccount Serverless App Stacks 6`] = `
 Object {
-  "Mappings": Object {
-    "CloudwatchlambdainsightsversionMap": Object {
-      "af-south-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:af-south-1:012438385374:layer:LambdaInsightsExtension:8",
-      },
-      "ap-east-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-east-1:519774774795:layer:LambdaInsightsExtension:8",
-      },
-      "ap-northeast-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-northeast-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "ap-northeast-2": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-northeast-2:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "ap-south-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-south-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "ap-southeast-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-southeast-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "ap-southeast-2": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ap-southeast-2:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "ca-central-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:ca-central-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "cn-north-1": Object {
-        "1_0_98_0_x86_64": "arn:aws-cn:lambda:cn-north-1:488211338238:layer:LambdaInsightsExtension:8",
-      },
-      "cn-northwest-1": Object {
-        "1_0_98_0_x86_64": "arn:aws-cn:lambda:cn-northwest-1:488211338238:layer:LambdaInsightsExtension:8",
-      },
-      "eu-central-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-central-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "eu-north-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-north-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "eu-south-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-south-1:339249233099:layer:LambdaInsightsExtension:8",
-      },
-      "eu-west-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-west-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "eu-west-2": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-west-2:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "eu-west-3": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:eu-west-3:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "me-south-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:me-south-1:285320876703:layer:LambdaInsightsExtension:8",
-      },
-      "sa-east-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:sa-east-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "us-east-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:us-east-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "us-east-2": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:us-east-2:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "us-west-1": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:us-west-1:580247275435:layer:LambdaInsightsExtension:14",
-      },
-      "us-west-2": Object {
-        "1_0_98_0_x86_64": "arn:aws:lambda:us-west-2:580247275435:layer:LambdaInsightsExtension:14",
-      },
-    },
-  },
   "Outputs": Object {
     "ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A": Object {
       "Export": Object {
-        "Name": "BLEA-LambdaPython:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
+        "Name": "BLEA-Lambda:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
       },
       "Value": Object {
         "Fn::GetAtt": Array [
@@ -1557,20 +1719,6 @@ Object {
     },
   },
   "Resources": Object {
-    "LambdaLayerCA94B5F7": Object {
-      "Properties": Object {
-        "CompatibleRuntimes": Array [
-          "python3.8",
-        ],
-        "Content": Object {
-          "S3Bucket": Object {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
-          },
-          "S3Key": "[HASH REMOVED]",
-        },
-      },
-      "Type": "AWS::Lambda::LayerVersion",
-    },
     "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": Object {
       "DependsOn": Array [
         "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
@@ -1776,10 +1924,9 @@ Object {
       ],
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": Object {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
+          "ImageUri": Object {
+            "Fn::Sub": "\${AWS::AccountId}.dkr.ecr.\${AWS::Region}.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}:de0cb1f80aaca43bfb5f59870c04b216504185aeee36f9103e31a8155a673fbd",
           },
-          "S3Key": "[HASH REMOVED]",
         },
         "Environment": Object {
           "Variables": Object {
@@ -1794,44 +1941,17 @@ Object {
             },
           },
         },
-        "Handler": "connection.lambda_handler",
         "KmsKeyArn": Object {
           "Fn::ImportValue": "BLEA-AppKey:ExportsOutputFnGetAttKey961B73FDArn5A860C43",
         },
-        "Layers": Array [
-          Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:aws:lambda:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":017000801446:layer:AWSLambdaPowertoolsPython:3",
-              ],
-            ],
-          },
-          Object {
-            "Ref": "LambdaLayerCA94B5F7",
-          },
-          Object {
-            "Fn::FindInMap": Array [
-              "CloudwatchlambdainsightsversionMap",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              "1_0_98_0_x86_64",
-            ],
-          },
-        ],
         "MemorySize": 512,
+        "PackageType": "Image",
         "Role": Object {
           "Fn::GetAtt": Array [
             "connectionServiceRole24FDE65B",
             "Arn",
           ],
         },
-        "Runtime": "python3.8",
         "Tags": Array [
           Object {
             "Key": "Environment",
@@ -1888,7 +2008,7 @@ Object {
     },
     "connectionSecurityGroupB2270A44": Object {
       "Properties": Object {
-        "GroupDescription": "Automatic security group for Lambda Function BLEALambdaPythonconnection41835206",
+        "GroupDescription": "Automatic security group for Lambda Function BLEALambdaconnection19E3F4D5",
         "SecurityGroupEgress": Array [
           Object {
             "CidrIp": "0.0.0.0/0",
@@ -1908,12 +2028,12 @@ Object {
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
-    "connectionSecurityGroupBLEADBAuroraPgDbSecurityGroup912F90965432toC7973363": Object {
+    "connectionSecurityGroupBLEADBAuroraPgDbProxySecurityGroupCFDCE8185432toB1E3451F": Object {
       "Properties": Object {
-        "Description": "to RDS Instance",
+        "Description": "to RDS Proxy",
         "FromPort": 5432,
         "GroupId": Object {
-          "Fn::ImportValue": "BLEA-DBAuroraPg:ExportsOutputFnGetAttDbSecurityGroupE9D701ADGroupId7A7C114A",
+          "Fn::ImportValue": "BLEA-DBAuroraPg:ExportsOutputFnGetAttDbProxySecurityGroupDF296A40GroupId6F20B6E0",
         },
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": Object {
@@ -2092,14 +2212,14 @@ Object {
 exports[`BLEA Guest Stack GuestAccount Serverless App Stacks 7`] = `
 Object {
   "Outputs": Object {
-    "RestApi6Endpoint393D44E2": Object {
+    "RestApiEndpoint0551178A": Object {
       "Value": Object {
         "Fn::Join": Array [
           "",
           Array [
             "https://",
             Object {
-              "Ref": "RestApi67DF464D4",
+              "Ref": "RestApi0C43BF4B",
             },
             ".execute-api.",
             Object {
@@ -2111,7 +2231,7 @@ Object {
             },
             "/",
             Object {
-              "Ref": "RestApi6DeploymentStageprod966EC826",
+              "Ref": "RestApiDeploymentStageprod3855DE66",
             },
             "/",
           ],
@@ -2140,7 +2260,7 @@ Object {
         "Dimensions": Array [
           Object {
             "Name": "ApiName",
-            "Value": "RestApi6",
+            "Value": "RestApi",
           },
         ],
         "EvaluationPeriods": 3,
@@ -2152,7 +2272,7 @@ Object {
       },
       "Type": "AWS::CloudWatch::Alarm",
     },
-    "ApiGatewayLogGroup63AE3911F": Object {
+    "ApiGatewayLogGroupA9770429": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
         "RetentionInDays": 30,
@@ -2166,9 +2286,9 @@ Object {
       "Type": "AWS::Logs::LogGroup",
       "UpdateReplacePolicy": "Retain",
     },
-    "RestApi67DF464D4": Object {
+    "RestApi0C43BF4B": Object {
       "Properties": Object {
-        "Name": "RestApi6",
+        "Name": "RestApi",
         "Tags": Array [
           Object {
             "Key": "Environment",
@@ -2178,21 +2298,21 @@ Object {
       },
       "Type": "AWS::ApiGateway::RestApi",
     },
-    "RestApi6Account9BA8968F": Object {
+    "RestApiAccount7C83CF5A": Object {
       "DependsOn": Array [
-        "RestApi67DF464D4",
+        "RestApi0C43BF4B",
       ],
       "Properties": Object {
         "CloudWatchRoleArn": Object {
           "Fn::GetAtt": Array [
-            "RestApi6CloudWatchRole653EEDDC",
+            "RestApiCloudWatchRoleE3ED6605",
             "Arn",
           ],
         },
       },
       "Type": "AWS::ApiGateway::Account",
     },
-    "RestApi6CloudWatchRole653EEDDC": Object {
+    "RestApiCloudWatchRoleE3ED6605": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -2229,35 +2349,35 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "RestApi6Deployment9C273AE890cdaf8e7dfeb14b736f6544bf9ce6ad": Object {
+    "RestApiDeployment180EC503f6de05717f6bb13cb6b471bf1a8bf154": Object {
       "DependsOn": Array [
-        "RestApi6connectGETDFB92EAB",
-        "RestApi6connectC06ADA8C",
+        "RestApiconnectGETC3EAB19D",
+        "RestApiconnect610ECC1F",
       ],
       "Properties": Object {
         "Description": "Automatically created by the RestApi construct",
         "RestApiId": Object {
-          "Ref": "RestApi67DF464D4",
+          "Ref": "RestApi0C43BF4B",
         },
       },
       "Type": "AWS::ApiGateway::Deployment",
     },
-    "RestApi6DeploymentStageprod966EC826": Object {
+    "RestApiDeploymentStageprod3855DE66": Object {
       "DependsOn": Array [
-        "RestApi6Account9BA8968F",
+        "RestApiAccount7C83CF5A",
       ],
       "Properties": Object {
         "AccessLogSetting": Object {
           "DestinationArn": Object {
             "Fn::GetAtt": Array [
-              "ApiGatewayLogGroup63AE3911F",
+              "ApiGatewayLogGroupA9770429",
               "Arn",
             ],
           },
           "Format": "{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","user":"$context.identity.user","caller":"$context.identity.caller","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}",
         },
         "DeploymentId": Object {
-          "Ref": "RestApi6Deployment9C273AE890cdaf8e7dfeb14b736f6544bf9ce6ad",
+          "Ref": "RestApiDeployment180EC503f6de05717f6bb13cb6b471bf1a8bf154",
         },
         "MethodSettings": Array [
           Object {
@@ -2269,7 +2389,7 @@ Object {
           },
         ],
         "RestApiId": Object {
-          "Ref": "RestApi67DF464D4",
+          "Ref": "RestApi0C43BF4B",
         },
         "StageName": "prod",
         "Tags": Array [
@@ -2282,26 +2402,26 @@ Object {
       },
       "Type": "AWS::ApiGateway::Stage",
     },
-    "RestApi6connectC06ADA8C": Object {
+    "RestApiconnect610ECC1F": Object {
       "Properties": Object {
         "ParentId": Object {
           "Fn::GetAtt": Array [
-            "RestApi67DF464D4",
+            "RestApi0C43BF4B",
             "RootResourceId",
           ],
         },
         "PathPart": "connect",
         "RestApiId": Object {
-          "Ref": "RestApi67DF464D4",
+          "Ref": "RestApi0C43BF4B",
         },
       },
       "Type": "AWS::ApiGateway::Resource",
     },
-    "RestApi6connectGETApiPermissionBLEARestApiPythonRestApi672434CA0GETconnect2E72525B": Object {
+    "RestApiconnectGETApiPermissionBLEARestApiC1A160FDGETconnectE4311A04": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
-          "Fn::ImportValue": "BLEA-LambdaPython:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
+          "Fn::ImportValue": "BLEA-Lambda:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
         },
         "Principal": "apigateway.amazonaws.com",
         "SourceArn": Object {
@@ -2322,11 +2442,11 @@ Object {
               },
               ":",
               Object {
-                "Ref": "RestApi67DF464D4",
+                "Ref": "RestApi0C43BF4B",
               },
               "/",
               Object {
-                "Ref": "RestApi6DeploymentStageprod966EC826",
+                "Ref": "RestApiDeploymentStageprod3855DE66",
               },
               "/GET/connect",
             ],
@@ -2335,11 +2455,11 @@ Object {
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "RestApi6connectGETApiPermissionTestBLEARestApiPythonRestApi672434CA0GETconnect1A3A90CA": Object {
+    "RestApiconnectGETApiPermissionTestBLEARestApiC1A160FDGETconnect7309CFF6": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
-          "Fn::ImportValue": "BLEA-LambdaPython:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
+          "Fn::ImportValue": "BLEA-Lambda:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
         },
         "Principal": "apigateway.amazonaws.com",
         "SourceArn": Object {
@@ -2360,7 +2480,7 @@ Object {
               },
               ":",
               Object {
-                "Ref": "RestApi67DF464D4",
+                "Ref": "RestApi0C43BF4B",
               },
               "/test-invoke-stage/GET/connect",
             ],
@@ -2369,7 +2489,7 @@ Object {
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "RestApi6connectGETDFB92EAB": Object {
+    "RestApiconnectGETC3EAB19D": Object {
       "Properties": Object {
         "AuthorizationType": "NONE",
         "HttpMethod": "GET",
@@ -2390,7 +2510,7 @@ Object {
                 },
                 ":lambda:path/2015-03-31/functions/",
                 Object {
-                  "Fn::ImportValue": "BLEA-LambdaPython:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
+                  "Fn::ImportValue": "BLEA-Lambda:ExportsOutputFnGetAttconnectionB9EBFA2CArn9A4D637A",
                 },
                 "/invocations",
               ],
@@ -2398,10 +2518,10 @@ Object {
           },
         },
         "ResourceId": Object {
-          "Ref": "RestApi6connectC06ADA8C",
+          "Ref": "RestApiconnect610ECC1F",
         },
         "RestApiId": Object {
-          "Ref": "RestApi67DF464D4",
+          "Ref": "RestApi0C43BF4B",
         },
       },
       "Type": "AWS::ApiGateway::Method",

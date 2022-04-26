@@ -8,7 +8,7 @@ import { BLEAChatbotStack } from '../lib/blea-chatbot-stack';
 import { BLEAVpcStack } from '../lib/blea-vpc-stack';
 import { BLEADbAuroraPgStack } from '../lib/blea-db-aurora-pg-stack';
 import { BLEAKeyAppStack } from '../lib/blea-key-app-stack';
-import { BLEALambdaPythonStack } from '../lib/blea-lambda-python-stack';
+import { BLEALambdaStack } from '../lib/blea-lambda-stack';
 import { BLEARestApiStack } from '../lib/blea-restapi-stack';
 
 const procEnv = {
@@ -69,7 +69,9 @@ describe(`${pjPrefix} Guest Stack`, () => {
     dbCluster.addDependency(prodVpc);
 
     // Lambda
-    const lambda = new BLEALambdaPythonStack(app, `${pjPrefix}-LambdaPython`, {
+    const lambda = new BLEALambdaStack(app, `${pjPrefix}-Lambda`, {
+      lambdaLanguage: 'python', // if you use Python for Lambda function
+      // lambdaLanguage: 'nodejs', // for Node.js
       alarmTopic: monitorAlarm.alarmTopic,
       myVpc: prodVpc.myVpc,
       vpcSubnets: prodVpc.myVpc.selectSubnets({
@@ -87,12 +89,13 @@ describe(`${pjPrefix} Guest Stack`, () => {
     lambda.addDependency(dbCluster);
 
     //REST Api
-    const restApi = new BLEARestApiStack(app, `${pjPrefix}-RestApiPython`, {
+    const restApi = new BLEARestApiStack(app, `${pjPrefix}-RestApi`, {
       alarmTopic: monitorAlarm.alarmTopic,
       connectFunction: lambda.connectFunction,
       env: procEnv,
     });
     restApi.addDependency(lambda);
+    // --------------------------------- Tagging  -------------------------------------
 
     // Tagging "Environment" tag to all resources in this app
     const envTagName = 'Environment';

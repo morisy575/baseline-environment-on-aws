@@ -11,7 +11,8 @@ import { aws_cloudwatch as cw } from 'aws-cdk-lib';
 import { aws_cloudwatch_actions as cw_actions } from 'aws-cdk-lib';
 import * as path from 'path';
 
-export interface BLEALambdaPythonStackProps extends cdk.StackProps {
+export interface BLEALambdaStackProps extends cdk.StackProps {
+  lambdaLanguage: string;
   alarmTopic: sns.Topic;
   myVpc: ec2.Vpc;
   vpcSubnets: ec2.SubnetSelection;
@@ -22,10 +23,10 @@ export interface BLEALambdaPythonStackProps extends cdk.StackProps {
   dbProxySecurityGroup: ec2.SecurityGroup;
   appKey: kms.Key;
 }
-export class BLEALambdaPythonStack extends cdk.Stack {
+export class BLEALambdaStack extends cdk.Stack {
   public readonly connectFunction: lambda.Function;
 
-  constructor(scope: Construct, id: string, props: BLEALambdaPythonStackProps) {
+  constructor(scope: Construct, id: string, props: BLEALambdaStackProps) {
     super(scope, id, props);
 
     // Custom Policy for App Key
@@ -42,7 +43,7 @@ export class BLEALambdaPythonStack extends cdk.Stack {
         principals: [
           new iam.AnyPrincipal().withConditions({
             ArnLike: {
-              'aws:PrincipalArn': `arn:aws:iam::${cdk.Stack.of(this).account}:role/BLEA-LambdaPython-*`,
+              'aws:PrincipalArn': `arn:aws:iam::${cdk.Stack.of(this).account}:role/BLEA-Lambda-*`,
             },
           }),
         ],
@@ -59,7 +60,7 @@ export class BLEALambdaPythonStack extends cdk.Stack {
 
     // Connection Function with Docker
     const connectFunction = new lambda.DockerImageFunction(this, 'connection', {
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../lambda/python/')),
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../lambda/', props.lambdaLanguage, '/')),
       timeout: cdk.Duration.seconds(25),
       memorySize: 512,
       tracing: lambda.Tracing.ACTIVE,
