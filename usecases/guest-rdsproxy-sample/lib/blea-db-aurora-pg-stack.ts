@@ -102,16 +102,32 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
       .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
 
     // Aurora Cluster Freeable Memory (The amount of available random access memory, in bytes)
-    // Now it is set to alarm when the free memory space is less than or equal to 1GB.
+    // Now it is set to alarm when the free memory space is less than or equal to 500MB.
     // You can check the max memory space of your DB instance from here : https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Summary
     cluster
       .metricFreeableMemory({
-        period: cdk.Duration.minutes(5),
+        period: cdk.Duration.minutes(1),
         statistic: cw.Statistic.AVERAGE,
       })
       .createAlarm(this, 'AuroraFreeableMem', {
-        evaluationPeriods: 5,
-        datapointsToAlarm: 5,
+        evaluationPeriods: 3,
+        datapointsToAlarm: 3,
+        threshold: 500000000, // bytes
+        comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+        actionsEnabled: true,
+      })
+      .addAlarmAction(new cw_actions.SnsAction(props.alarmTopic));
+
+    // Aurora Cluster Free Local Storage (The amount of local storage available, in bytes)
+    // Now it is set to alarm when the free local storage space is less than or equal to 1GB.
+    cluster
+      .metricFreeLocalStorage({
+        period: cdk.Duration.minutes(1),
+        statistic: cw.Statistic.AVERAGE,
+      })
+      .createAlarm(this, 'AuroraFreeLocalStorage', {
+        evaluationPeriods: 3,
+        datapointsToAlarm: 3,
         threshold: 1000000000, // bytes
         comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
@@ -123,13 +139,13 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     // You should set the threshold according to your DB cluster instance class. (https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Performance.html#AuroraMySQL.Managing.MaxConnections)
     cluster
       .metricDatabaseConnections({
-        period: cdk.Duration.minutes(5),
-        statistic: cw.Statistic.AVERAGE,
+        period: cdk.Duration.minutes(1),
+        statistic: cw.Statistic.SUM,
       })
       .createAlarm(this, 'AuroraDbConnections', {
-        evaluationPeriods: 5,
-        datapointsToAlarm: 5,
-        threshold: 90,
+        evaluationPeriods: 3,
+        datapointsToAlarm: 3,
+        threshold: 200,
         comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
       })
@@ -151,7 +167,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     })
       .createAlarm(this, 'AvailabilityPercentageAlarm', {
         evaluationPeriods: 3,
-        threshold: 95, // percentage
+        threshold: 99, // percentage
         datapointsToAlarm: 3,
         comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
@@ -171,7 +187,7 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     })
       .createAlarm(this, 'ClientConnectionsAlarm', {
         evaluationPeriods: 3,
-        threshold: 100, // connections
+        threshold: 300, // connections
         datapointsToAlarm: 3,
         comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
@@ -191,10 +207,9 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
     })
       .createAlarm(this, 'DatabaseConnectionsAlarm', {
         evaluationPeriods: 3,
-        // Now the threshold is set to 90, the default value of DB t3.medium class .
-        // You should set the threshold according to your DB cluster instance class.
+        // You should set the threshold according to max_connections and your DB cluster instance class.
         // In checking the max_connections (the maximum number of connections), you can refer to this document (https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Performance.html#AuroraMySQL.Managing.MaxConnections)
-        threshold: 90,
+        threshold: 200,
         datapointsToAlarm: 3,
         comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
         actionsEnabled: true,
@@ -270,6 +285,13 @@ export class BLEADbAuroraPgStack extends cdk.Stack {
         'notification',
         'recovery',
       ],
+    });
+
+    new rds.CfnEventSubscription(this, 'RdsEventsProxy', {
+      snsTopicArn: props.alarmTopic.topicArn,
+      enabled: true,
+      sourceType: 'db-proxy',
+      eventCategories: ['configuration change', 'creation', 'deletion'],
     });
   }
 }
