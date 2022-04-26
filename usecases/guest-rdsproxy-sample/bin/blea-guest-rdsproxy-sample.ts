@@ -86,8 +86,8 @@ dbCluster.addDependency(prodVpc);
 
 // Lambda
 const lambda = new BLEALambdaStack(app, `${pjPrefix}-Lambda`, {
-  // lambdaLanguage: 'python', // if you use Python for Lambda function
-  lambdaLanguage: 'nodejs', // for NodeJS
+  lambdaLanguage: 'python', // if you use Python for Lambda function
+  // lambdaLanguage: 'nodejs', // for NodeJS
   alarmTopic: monitorAlarm.alarmTopic,
   myVpc: prodVpc.myVpc,
   vpcSubnets: prodVpc.myVpc.selectSubnets({
