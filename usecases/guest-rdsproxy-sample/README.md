@@ -40,11 +40,7 @@ You have two options for security to connect to RDS Proxy. (https://docs.aws.ama
 1. **use IAM authentication. This is recommended** because it can remove the need to embed or read credentials in your function code). In this CDK template we use IAM authentication.
 2. use your native database credentials stored in Secrets Manager. If you want to implement in this way, you have to create IAM policy that allows Lambda function to access DB credentials in Secrets Manager.
 
-## Next Steps
+### DB user settings
 
-- DB shema initialization
-- Create DB user account that can use an AWS authentication token and can have only necessary permissions (avoid using DB master user)
-
+- In the production environment, you should create DB user account that can use an AWS authentication token and can have only necessary permissions (avoid using DB master user)
   - https://aws.amazon.com/premiumsupport/knowledge-center/users-connect-rds-iam/?nc1=h_ls
-
-- Create Lambda functions for DB operation
